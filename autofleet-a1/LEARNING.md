@@ -27,7 +27,7 @@ exchanges JSON-RPC messages over stdin/stdout. That is why **you must never `pri
 1. **Talk to it.** Connect the server (README), ask the central question, then ask "why is Site C below target?". Check each number against `truth.json`. Which tools did Claude call, in what order?
 2. **Record a baseline.** Open `notebooks/autofleet_a1_agent.ipynb`, set your API key and run section 6. Then read `agent/loop.py` (about 60 lines): it is the tool-calling loop that MCP hid from you. Note the score in the README.
 3. **Break a docstring** on `service_cycle_time`, re-run, and see which question types drop.
-4. **Block 8: messy data.** Add a `--messy` flag to `generate.py` (3% duplicate work orders, 2% missing `closed_at`, inconsistent category spellings), write `tools/clean.py`, and add a `data_quality_report` tool. Compare clean vs messy scores.
+4. **Block 8: compare models, then messy data.** First, run notebook section 7 with Claude and an open model (Qwen via Ollama, or Kimi) and write down which question types the smaller model fails. Then add messy data: Add a `--messy` flag to `generate.py` (3% duplicate work orders, 2% missing `closed_at`, inconsistent category spellings), write `tools/clean.py`, and add a `data_quality_report` tool. Compare clean vs messy scores.
 5. **Block 7 upgrade.** Replace TF-IDF in `tools/playbooks.py` with `sentence-transformers` + FAISS; keep `search_playbooks` unchanged and check retrieval still passes.
 6. **Block 9: `simulate(site, add_technicians, parts_delay_days)`.** Capacity model: night-shift throughput = technicians x WOs/tech-shift; queue wait scales with load. Add 3 eval questions.
 7. **Block 10.** Gradio chat + KPI panel, architecture diagram, 3-minute demo script.

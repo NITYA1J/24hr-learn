@@ -80,3 +80,9 @@ def test_openai_compat_backend_message_flow():
     assert out["tool_calls"][0]["result"]["top"][0]["category"] == "sensor_calibration"
     assert out["answer"].startswith("Sensor")
     assert seen[0]["tools"][0]["function"]["parameters"]["type"] == "object"
+
+
+def test_compare_table_for_scripted_backend():
+    from eval.compare import compare
+    t = compare({"scripted": ScriptedBackend(QS)})
+    assert t.loc["scripted", "tool_choice_%"] == 100 and t.loc["scripted", "hallucination_%"] == 0
