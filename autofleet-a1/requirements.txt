@@ -2,6 +2,7 @@ pandas>=2.2
 numpy>=1.26
 pydantic>=2
 mcp>=2.0           # MCP server + client (server.py, notebook section 7)
-anthropic>=0.40    # real agent in the notebook (agent/loop.py ClaudeBackend)
+anthropic>=0.40    # Claude backend (agent/loop.py ClaudeBackend)
+openai>=1.40       # optional: open models / Kimi via OpenAI-compatible APIs (OpenAICompatBackend)
 pytest>=8
 # notebook testing (optional): nbclient nbformat ipykernel

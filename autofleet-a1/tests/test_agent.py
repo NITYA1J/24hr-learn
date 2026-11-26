@@ -57,3 +57,26 @@ def test_call_cap_forces_final_answer():
             return ("final" if not allow_tools else "", [] if not allow_tools else [{"id": f"x{len(messages)}", "name": "readiness_trend", "input": {}}])
     out = run_agent("q", Greedy(), max_calls=4)
     assert len(out["tool_calls"]) == 4 and out["answer"] == "final"
+
+
+def test_openai_compat_backend_message_flow():
+    from agent.loop import OpenAICompatBackend
+    seen = []
+
+    def create(**kw):
+        seen.append(kw)
+        if len(seen) == 1:
+            fn = NS(name="top_bottlenecks", arguments='{"n": 1}')
+            msg = NS(content=None, tool_calls=[NS(id="c1", function=fn)])
+        else:
+            roles = [m["role"] for m in kw["messages"]]
+            assert roles == ["system", "user", "assistant", "tool"]
+            assert kw["messages"][2]["tool_calls"][0]["function"]["arguments"] == '{"n": 1}'
+            msg = NS(content="Sensor calibration costs 2.93 points.", tool_calls=None)
+        return NS(choices=[NS(message=msg)])
+
+    client = NS(chat=NS(completions=NS(create=create)))
+    out = run_agent("top cause?", OpenAICompatBackend("any-model", client=client))
+    assert out["tool_calls"][0]["result"]["top"][0]["category"] == "sensor_calibration"
+    assert out["answer"].startswith("Sensor")
+    assert seen[0]["tools"][0]["function"]["parameters"]["type"] == "object"
