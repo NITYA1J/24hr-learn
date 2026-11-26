@@ -84,16 +84,17 @@ class ScriptedBackend:
 
 
 class OpenAICompatBackend:
-    """Any model behind an OpenAI-compatible chat API with tool calling: Kimi (Moonshot API), Qwen / Llama / Kimi
+    """Any model behind an OpenAI-compatible chat API with tool calling: Gemini, Kimi (Moonshot API), Qwen / Llama / Kimi
     served locally by Ollama or vLLM, Together, Groq, OpenRouter, etc.  Needs `pip install openai`.
-      base_url examples: Kimi  https://api.moonshot.ai/v1  |  Ollama  http://localhost:11434/v1  |  vLLM  http://localhost:8000/v1
+      base_url examples: Gemini  https://generativelanguage.googleapis.com/v1beta/openai/  |  Kimi  https://api.moonshot.ai/v1  |  Ollama  http://localhost:11434/v1  |  vLLM  http://localhost:8000/v1
       (check your provider's docs for its exact base_url and model name)"""
-    def __init__(self, model: str, base_url: str | None = None, api_key: str | None = None, max_tokens: int = 1500, client=None):
+    def __init__(self, model: str, base_url: str | None = None, api_key: str | None = None, max_tokens: int = 4096, client=None):
         if client is None:
             import openai
             client = openai.OpenAI(base_url=base_url, api_key=api_key or "not-needed")
         self.client, self.model, self.max_tokens = client, model, max_tokens
         self._reasoning: dict[str, str] = {}   # first tool_call id -> reasoning_content (Kimi thinking models want it replayed)
+        self._tc_extra: dict[str, dict] = {}   # tool_call id -> extra_content (Gemini 3 'thought_signature' must be sent back)
 
     def _convert(self, system, messages):
         """Anthropic-style blocks -> OpenAI chat messages."""
@@ -104,7 +105,8 @@ class OpenAICompatBackend:
                 out.append({"role": m["role"], "content": c})
             elif m["role"] == "assistant":
                 text = "".join(b["text"] for b in c if b["type"] == "text")
-                calls = [{"id": b["id"], "type": "function", "function": {"name": b["name"], "arguments": json.dumps(b["input"])}}
+                calls = [{"id": b["id"], "type": "function", "function": {"name": b["name"], "arguments": json.dumps(b["input"])},
+                          **({"extra_content": self._tc_extra[b["id"]]} if b["id"] in self._tc_extra else {})}
                          for b in c if b["type"] == "tool_use"]
                 msg = {"role": "assistant", "content": text or None, **({"tool_calls": calls} if calls else {})}
                 if calls and calls[0]["id"] in self._reasoning:
@@ -117,22 +119,41 @@ class OpenAICompatBackend:
     def complete(self, system, messages, tools, allow_tools=True):
         oa_tools = [{"type": "function", "function": {"name": t["name"], "description": t["description"],
                                                        "parameters": t["input_schema"]}} for t in tools]
-        kw = dict(model=self.model, max_tokens=self.max_tokens, messages=self._convert(system, messages), tools=oa_tools)
+        kw = dict(model=self.model.removeprefix("models/"), max_tokens=self.max_tokens,
+                  messages=self._convert(system, messages), tools=oa_tools)
         if not allow_tools:
             kw["tool_choice"] = "none"
-        msg = self.client.chat.completions.create(**kw).choices[0].message
+        msg = self._create_with_retry(kw).choices[0].message
         uses = []
-        for tc in (msg.tool_calls or []):
+        for i, tc in enumerate(msg.tool_calls or []):
             try:
                 args = json.loads(tc.function.arguments or "{}")
             except json.JSONDecodeError:
                 args = {}  # small models sometimes emit broken JSON; the tool will return a helpful error
-            uses.append({"id": tc.id, "name": tc.function.name, "input": args})
+            tc_id = tc.id or f"call_{len(self._tc_extra) + i}_{tc.function.name}"   # some providers return empty ids
+            extra = getattr(tc, "extra_content", None) or (getattr(tc, "model_extra", None) or {}).get("extra_content")
+            if extra:
+                self._tc_extra[tc_id] = extra
+            uses.append({"id": tc_id, "name": tc.function.name, "input": args})
         reasoning = getattr(msg, "reasoning_content", None)
         if reasoning and uses:
             self._reasoning[uses[0]["id"]] = reasoning
         return msg.content or "", uses
 
+    def _create_with_retry(self, kw, tries: int = 5):
+        """Free tiers (Gemini, hosted Kimi) rate-limit with HTTP 429 / 503: wait and retry instead of failing the whole eval."""
+        import time
+        for attempt in range(tries):
+            try:
+                return self.client.chat.completions.create(**kw)
+            except Exception as e:
+                if getattr(e, "status_code", None) in (429, 503) and attempt < tries - 1:
+                    wait = 5 * 2 ** attempt            # 5, 10, 20, 40 seconds
+                    print(f"  rate limited ({e.status_code}); waiting {wait}s then retrying...")
+                    time.sleep(wait)
+                    continue
+                raise
+
     def list_models(self) -> list[str]:
         """Model ids your key can use (GET /v1/models). Use this instead of guessing names."""
-        return sorted(m.id for m in self.client.models.list().data)
+        return sorted(m.id.removeprefix("models/") for m in self.client.models.list().data)

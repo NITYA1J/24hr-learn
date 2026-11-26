@@ -104,3 +104,44 @@ def test_kimi_reasoning_content_is_replayed_and_models_listed():
     be = OpenAICompatBackend("m", client=client)
     assert run_agent("q", be)["answer"] == "done"
     assert be.list_models() == ["a", "b"]
+
+
+def test_gemini_style_thought_signature_and_empty_ids_roundtrip():
+    from agent.loop import OpenAICompatBackend
+    seen = []
+
+    def create(**kw):
+        seen.append(kw)
+        if len(seen) == 1:
+            fn = NS(name="top_bottlenecks", arguments="{}")
+            tc = NS(id="", function=fn, extra_content={"google": {"thought_signature": "SIG"}})
+            return NS(choices=[NS(message=NS(content=None, tool_calls=[tc]))])
+        asst = kw["messages"][2]["tool_calls"][0]
+        assert asst["extra_content"]["google"]["thought_signature"] == "SIG"     # signature sent back
+        assert asst["id"] and kw["messages"][3]["tool_call_id"] == asst["id"]    # empty id replaced consistently
+        assert kw["model"] == "gemini-x"                                          # 'models/' prefix stripped
+        return NS(choices=[NS(message=NS(content="ok", tool_calls=None))])
+
+    client = NS(chat=NS(completions=NS(create=create)), models=NS(list=lambda: NS(data=[NS(id="models/gemini-x")])))
+    be = OpenAICompatBackend("models/gemini-x", client=client)
+    assert run_agent("q", be)["answer"] == "ok"
+    assert be.list_models() == ["gemini-x"]
+
+
+def test_rate_limit_is_retried(monkeypatch):
+    import time
+    from agent.loop import OpenAICompatBackend
+    monkeypatch.setattr(time, "sleep", lambda s: None)
+    n = {"calls": 0}
+
+    class Limited(Exception):
+        status_code = 429
+
+    def create(**kw):
+        n["calls"] += 1
+        if n["calls"] < 3:
+            raise Limited("slow down")
+        return NS(choices=[NS(message=NS(content="finally", tool_calls=None))])
+
+    be = OpenAICompatBackend("m", client=NS(chat=NS(completions=NS(create=create))))
+    assert run_agent("q", be)["answer"] == "finally" and n["calls"] == 3
