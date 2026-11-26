@@ -86,3 +86,21 @@ def test_compare_table_for_scripted_backend():
     from eval.compare import compare
     t = compare({"scripted": ScriptedBackend(QS)})
     assert t.loc["scripted", "tool_choice_%"] == 100 and t.loc["scripted", "hallucination_%"] == 0
+
+
+def test_kimi_reasoning_content_is_replayed_and_models_listed():
+    from agent.loop import OpenAICompatBackend
+    seen = []
+
+    def create(**kw):
+        seen.append(kw)
+        if len(seen) == 1:
+            fn = NS(name="top_bottlenecks", arguments="{}")
+            return NS(choices=[NS(message=NS(content=None, reasoning_content="thinking...", tool_calls=[NS(id="c1", function=fn)]))])
+        assert kw["messages"][2]["reasoning_content"] == "thinking..."
+        return NS(choices=[NS(message=NS(content="done", tool_calls=None))])
+
+    client = NS(chat=NS(completions=NS(create=create)), models=NS(list=lambda: NS(data=[NS(id="b"), NS(id="a")])))
+    be = OpenAICompatBackend("m", client=client)
+    assert run_agent("q", be)["answer"] == "done"
+    assert be.list_models() == ["a", "b"]

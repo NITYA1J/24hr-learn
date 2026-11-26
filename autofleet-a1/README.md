@@ -28,8 +28,9 @@ Open `notebooks/autofleet_a1_agent.ipynb`. It runs the whole pipeline: data, KPI
 
 | Backend | How to select it (environment variables) |
 |---|---|
-| Claude | `ANTHROPIC_API_KEY` (optional `AUTOFLEET_MODEL`) |
-| Open models: Kimi, Qwen, Llama (Ollama, vLLM, or any hosted OpenAI-compatible API with tool calling) | `AUTOFLEET_BASE_URL`, `AUTOFLEET_MODEL`, optional `AUTOFLEET_API_KEY` |
+| **Kimi (Moonshot AI), the default** | `MOONSHOT_API_KEY` (or paste it when prompted). The notebook lists the models your key can use and asks you to pick one. China accounts: `AUTOFLEET_BASE_URL=https://api.moonshot.cn/v1` |
+| Other open models: Qwen, Llama (Ollama, vLLM, any OpenAI-compatible API with tool calling) | `AUTOFLEET_BASE_URL`, `AUTOFLEET_MODEL`, optional `AUTOFLEET_API_KEY` |
+| Claude (optional) | `AUTOFLEET_MODE=claude` + `ANTHROPIC_API_KEY` |
 | Offline scripted (tests the loop, tools and scorer; not a model score) | `AUTOFLEET_MODE=scripted`, or nothing set |
 ```bash
 pip install -r requirements.txt jupyter
