@@ -17,10 +17,21 @@ eval/ ──► 30 questions + scorer + stub agents      tests/ ──► truth 
 ```bash
 pip install -r requirements.txt
 python data/generate.py          # deterministic (seed 42); rewrites data/ and truth.json
-python -m pytest -q              # 9 tests: all 5 planted truths recovered, server works over stdio
+python -m pytest -q              # 14+ tests: all 5 planted truths recovered, server works over stdio
 python eval/build_questions.py   # regenerate the 30 eval questions from the tools
 python eval/stub_agents.py oracle > /tmp/r.jsonl && python eval/score.py /tmp/r.jsonl
 ```
+
+## Run it as a notebook (Jupyter or Colab)
+Open `notebooks/autofleet_a1_agent.ipynb`. It runs the whole pipeline: data, KPI tools, the tool-calling agent
+(`agent/loop.py`), the 30-question eval, and an MCP client. Set `ANTHROPIC_API_KEY` for the real Claude agent;
+without a key it uses an offline scripted backend that tests the loop, tools and scorer (not a model score).
+```bash
+pip install -r requirements.txt jupyter
+jupyter notebook notebooks/autofleet_a1_agent.ipynb
+```
+On Colab, upload or open the notebook; the first cell clones the repo and installs dependencies. To use the agent from
+your own code: `from agent.loop import run_agent, ClaudeBackend`.
 
 ## Use it from Claude
 **Claude Code** (from this folder; `.mcp.json` is picked up automatically, or add it explicitly):
@@ -57,8 +68,8 @@ Dataset: 4,583 work orders, 300 vehicles, 5 sites, 8 weeks (plan said ~4,000; cl
 | 3 KPI tools + tests | done |
 | 4 Eval set + scorer | done (validated with stub agents; no LLM score yet) |
 | 5 Checkpoint | done |
-| 6 LLM tool-calling loop | **replaced by MCP**: Claude is the agent. Baseline score still to be recorded (see LEARNING.md) |
+| 6 LLM tool-calling loop | done two ways: **MCP** (`server.py`, Claude Desktop/Code is the loop) and **notebook** (`agent/loop.py` + Anthropic API). The Claude-API path is tested with a fake client only; no live baseline score recorded yet |
 | 7 Playbook RAG | done, TF-IDF (embedding + FAISS swap is an exercise) |
 | 8 Messy data / model comparison | not started |
 | 9 What-if `simulate` | not started |
-| 10 UI / diagram / demo | not started |
+| 10 UI / diagram / demo | notebook host done; Gradio UI, diagram, demo script not started |

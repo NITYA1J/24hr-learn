@@ -1,2 +1,4 @@
 __pycache__/
 .pytest_cache/
+eval/results/
+.ipynb_checkpoints/
