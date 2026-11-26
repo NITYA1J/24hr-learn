@@ -1,0 +1,43 @@
+{
+  "n_work_orders": 4583,
+  "sensor_calibration_downtime_share": 0.3500000000000001,
+  "readiness_points_lost_by_category": {
+    "sensor_calibration": 2.927500822137664,
+    "brakes": 0.9875397570287846,
+    "tires": 0.9567057035623541,
+    "battery_charging": 0.8370292366121027,
+    "body_damage": 0.7193730520677072,
+    "electrical_wiring": 0.5961189484872528,
+    "software_ota": 0.5338543288476517,
+    "steering_suspension": 0.4859576704270062,
+    "hvac": 0.320208544079944
+  },
+  "site_C_backlog_mean_age_days_vs_others": {
+    "mean_age_by_site": {
+      "A": 0.9815329139930202,
+      "B": 0.40227391975308646,
+      "C": 1.9944807143088394,
+      "D": 1.748523637165304,
+      "E": 0.9553151989812279
+    },
+    "ratio_C_to_mean_of_others": 1.9517158534548071,
+    "note": "average of daily snapshots, days 7-56"
+  },
+  "site_B_brake_cycle_time": {
+    "median_h_weeks_5_6": 5.032862385256945,
+    "median_h_other_weeks": 3.071299046160833,
+    "ratio": 1.6386754626020847
+  },
+  "region_readiness_slope_points_per_week": {
+    "R1": 0.2645502645502609,
+    "R2": -1.5745464852607747
+  },
+  "site_mean_readiness_pct": {
+    "A": 94.52380952380952,
+    "B": 95.29761904761904,
+    "C": 85.05952380952381,
+    "D": 89.28571428571429,
+    "E": 90.44642857142857
+  },
+  "target_readiness_pct": 92.0
+}
