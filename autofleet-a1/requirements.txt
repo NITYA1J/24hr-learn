@@ -1,0 +1,4 @@
+pandas>=2.2
+numpy>=1.26
+mcp>=2.0      # official MCP Python SDK (v2 API: MCPServer)
+pytest>=8
