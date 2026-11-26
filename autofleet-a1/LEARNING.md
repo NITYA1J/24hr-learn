@@ -25,7 +25,7 @@ exchanges JSON-RPC messages over stdin/stdout. That is why **you must never `pri
 
 ## 4. Hands-on exercises (in order; each ~30-60 min)
 1. **Talk to it.** Connect the server (README), ask the central question, then ask "why is Site C below target?". Check each number against `truth.json`. Which tools did Claude call, in what order?
-2. **Record a baseline.** Ask Claude the 30 questions in `eval/questions.jsonl`, saving `{id, tool_calls, answer}` per line, then `python eval/score.py results.jsonl`. (Writing a small runner with the Anthropic SDK's tool-use loop is a great exercise: it is the loop that MCP hid from you.)
+2. **Record a baseline.** Open `notebooks/autofleet_a1_agent.ipynb`, set your API key and run section 6. Then read `agent/loop.py` (about 60 lines): it is the tool-calling loop that MCP hid from you. Note the score in the README.
 3. **Break a docstring** on `service_cycle_time`, re-run, and see which question types drop.
 4. **Block 8: messy data.** Add a `--messy` flag to `generate.py` (3% duplicate work orders, 2% missing `closed_at`, inconsistent category spellings), write `tools/clean.py`, and add a `data_quality_report` tool. Compare clean vs messy scores.
 5. **Block 7 upgrade.** Replace TF-IDF in `tools/playbooks.py` with `sentence-transformers` + FAISS; keep `search_playbooks` unchanged and check retrieval still passes.
